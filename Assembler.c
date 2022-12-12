@@ -1,6 +1,21 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
+int opcode_to_binary(char line[]);
+int register_to_binary(char line[] , int nRegister) ;
+void int_to_fixed_length_binary(int n, int length, char* binary);
+void conver_R_format(char *line, char *binaryline);
+void read_file_line_by_line(const char *input_filename ,const char *output_filename );
+int check_is_imm(char *line);
+
+int main() {
+    char input_file[] = "square.asm";
+    char output_file[] = "memin.txt";
+    read_file_line_by_line(input_file , output_file);
+
+    return 0;
+}
 
 int opcode_to_binary(char line[]) {
     if      (!strncmp("add",line,3)){ return 0; }
@@ -64,14 +79,99 @@ int register_to_binary(char line[] , int nRegister) {
 
 }
 
+void int_to_fixed_length_binary(int n, int length, char* binary) {
+    // Make sure the buffer is large enough
+    if (length < 1) {
+        printf("Error: length must be at least 1\n");
+        return;
+    }
 
-int main() {
-    char line[] = "halt $zero $t2 $t1";
+    // Initialize the buffer with zeros
+    for (int i = 0; i < length; i++) {
+        binary[i] = '0';
+    }
+    binary[length] = '\0';
+
+    // Convert the integer to binary and store it in the buffer
+    int i = 0;
+    while (n > 0 && i < length) {
+        binary[length - i - 1] = (n % 2) + '0';
+        n = n / 2;
+        i++;
+    }
+
+    binary[length] = '\0';
+}
+
+void conver_R_format(char *line, char *binaryline){
     int opcode = opcode_to_binary(line);
     int register_1 = register_to_binary(line, 1);
     int register_2 = register_to_binary(line, 2);
     int register_3 = register_to_binary(line, 3);
-    printf("%d%d%d%d", opcode, register_1, register_2, register_3);
-    return 0;
+
+    char opcode_binary[8+1];
+    char register_1_binary[4+1];
+    char register_2_binary[4+1];
+    char register_3_binary[4+1];
+    int_to_fixed_length_binary(opcode,8,opcode_binary);
+    int_to_fixed_length_binary(register_1,4, register_1_binary);
+    int_to_fixed_length_binary(register_2,4, register_2_binary);
+    int_to_fixed_length_binary(register_2,4, register_3_binary);
+    //printf("%s %s %s %s", opcode_binary, register_1_binary, register_2_binary, register_2_binary);
+
+    strcpy(binaryline, opcode_binary);
+    strcpy(binaryline+8, register_1_binary);
+    strcpy(binaryline+12, register_2_binary);
+    strcpy(binaryline+16, register_3_binary);
 }
 
+void read_file_line_by_line(const char *input_filename ,const char *output_filename )
+{
+    // Open file for reading and writing
+    FILE *input = fopen(input_filename, "r");
+    FILE *output = fopen(output_filename, "w");
+
+    // Check for successful file open
+    if (input == NULL) {
+        printf("Error: Unable to open file %s\n", input_filename);
+        return;
+    }
+
+    // Read the file line by line
+    char line[1024];
+    char binaryline[21];
+    char imm_cmd[21] = "00000000000000000000";
+
+    while (fgets(line, sizeof line, input)) {
+        int is_imm = check_is_imm(line);
+        
+        conver_R_format(line, binaryline);
+        
+        fprintf (output, "%s\n", binaryline);
+        if (is_imm == 1){
+            fprintf (output, "%s\n", imm_cmd);
+        }
+        // Print the line to the screen
+        printf("%s\n", binaryline);
+        printf("%s", line);
+        
+    }
+
+    // Close the file
+    fclose(input);
+    fclose(output);
+}
+
+int check_is_imm(char *line){
+    char s[] = " ";
+    char tmp[20];
+    strcpy(tmp, line);
+    char *p = strtok(tmp, s);
+
+    char c = p[strlen(p)-1];
+    if (c == 'i'){
+        return 1;
+    }
+
+    return 0;
+}
