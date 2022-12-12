@@ -1,0 +1,23 @@
+0 add
+1 sub
+2 mul
+3 and
+4 or
+5 xor
+6 sll
+7 sra
+8 srl
+9 beq
+10 bne
+11 blt
+12 bgt
+13 ble
+14 bge
+15 jal
+16 lw
+17 sw
+18 reti
+19 in
+20 out
+21 halt
+
