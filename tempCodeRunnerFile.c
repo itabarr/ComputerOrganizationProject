@@ -1,0 +1,1 @@
+        get_label_name(line, label);
