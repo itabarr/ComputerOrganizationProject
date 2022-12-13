@@ -9,9 +9,17 @@ void conver_R_format(char *line, char *binaryline);
 void read_file_line_by_line(const char *input_filename ,const char *output_filename );
 int check_is_imm(char *line);
 
-int main() {
-    char input_file[] = "square.asm";
-    char output_file[] = "memin.txt";
+int main(int argc, char* argv[]) {
+    if (argc < 3){
+        printf("Error: Two arguments are required.\n");
+        return 1;
+    }
+
+    char *input_file = argv[1];
+    char *output_file = argv[2];
+    // char input_file[] = "square.asm";
+    // char output_file[] = "memin.txt";
+    
     read_file_line_by_line(input_file , output_file);
 
     return 0;
