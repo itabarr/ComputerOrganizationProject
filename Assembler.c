@@ -21,7 +21,7 @@ void remove_comment(char *line);
 void int_to_fixed_length_binary(int n, char org_binary_string[], int length);
 char four_bit_string_to_hex(char four_bit_string[]);
 int get_label_by_name(char* label_name, char* filename);
-
+void binary_string_to_hex(char binary_string[21] , char hex_string[6] );
 
 int main(int argc, char* argv[]) {
 
@@ -148,20 +148,22 @@ void second_iteration_get_opcodes(char *input_filename , char *output_filename){
             //Update label in file + Print the label to the screen
             fprintf (output, "%s\n", hex_opcode);
             printf("OPCODE , %d ,%s\n" , line_index , hex_opcode);
-            if (_is_imm(line)){
+            if (register_1 == 1 || register_2 == 1 || register_3 ==1){
                 get_imm_const(line , imm_const);
                 imm = get_label_by_name(imm_const , "labels.txt");
 
                 if (imm == -1){
-                    int_to_fixed_length_binary(atoi(imm_const),imm_opcode,20);
+                    int_to_fixed_length_binary((atoi(imm_const)),imm_opcode,20);
                     imm_opcode[20] = '\0';
+                    binary_string_to_hex(imm_opcode , hex_opcode);
                 }
 
                 else{
                     int_to_fixed_length_binary(imm_const,imm_opcode,20);
-                    imm_opcode[20] = '\0';  
+                    imm_opcode[20] = '\0'; 
+                    binary_string_to_hex(imm_opcode , hex_opcode); 
                 }
-                fprintf(output, "%s\n" ,imm_opcode);
+                fprintf(output, "%s\n" ,hex_opcode);
                 
             }
         }  
@@ -246,7 +248,7 @@ int _is_word(char* line){
 
 }
 
-int _is_imm(char* line){
+int _is_imm_old(char* line){
     char* p = get_n_substring(line , 4);
 
     if (!strncmp("0",p,4)){
@@ -350,7 +352,7 @@ void remove_comment(char *str){
 
 }
 
-void int_to_fixed_length_binary(int n, char org_binary_string[], int length) {
+void int_to_fixed_length_binary_old(int n, char org_binary_string[], int length) {
     char binary_string[MAX_LINE_SIZE];
 
     if (length < 1) {
@@ -375,6 +377,61 @@ void int_to_fixed_length_binary(int n, char org_binary_string[], int length) {
 
     strncpy(org_binary_string , binary_string ,length+1);
     
+}
+
+void int_to_fixed_length_binary(int n, char org_binary_string[], int length) {
+    char binary_string[MAX_LINE_SIZE];
+    int is_negative = 0;
+
+    if (length < 1) {
+        printf("Error: length must be at least 1\n");
+        
+    }
+
+    // Initialize the buffer with zeros
+    for (int i = 0; i < length; i++) {
+        *(binary_string+i) = '0';
+    }
+
+    // Check if the number is negative and set the flag accordingly
+    if (n < 0) {
+        is_negative = 1;
+        n = -n;
+    }
+
+    // Convert the integer to binary and store it in the buffer
+    int i = 0;
+    while (n > 0 && i < length) {
+        *(binary_string +length - i - 1) = (n % 2) + '0';
+        n = n / 2;
+        i++;
+    }
+
+    // If the number is negative, invert the bits and add 1 to get the two's complement representation
+    if (is_negative) {
+        for (int i = 0; i < length; i++) {
+            if (*(binary_string+i) == '0') {
+                *(binary_string+i) = '1';
+            } else {
+                *(binary_string+i) = '0';
+            }
+        }
+        
+        // Add 1 to the binary representation to get the two's complement
+        int carry = 1;
+        for (int i = length - 1; i >= 0; i--) {
+            if (*(binary_string+i) == '1' && carry == 1) {
+                *(binary_string+i) = '0';
+            } else if (*(binary_string+i) == '0' && carry == 1) {
+                *(binary_string+i) = '1';
+                carry = 0;
+            }
+        }
+    }
+
+    *(binary_string+length) = '\0';
+
+    strncpy(org_binary_string , binary_string ,length+1);
 }
 
 char four_bit_string_to_hex(char four_bit_string[]) {
@@ -423,4 +480,33 @@ int get_label_by_name(char* label_name, char* filename) {
 
     fclose(file);
     return -1;  // Return -1 if the name is not found
+}
+
+
+void binary_string_to_hex(char binary_string[21] , char hex_string[6] ){
+
+    char part1[5];
+    part1[4] = '\0'; 
+    char part2[5];
+    part2[4] = '\0';
+    char part3[5];
+    part3[4] = '\0';
+    char part4[5];
+    part4[4] = '\0';
+    char part5[5];
+    part5[4] = '\0';
+
+    strncpy(part1, binary_string,4);
+    strncpy(part2, binary_string+4,4);
+    strncpy(part3, binary_string+8,4);
+    strncpy(part4, binary_string+12,4);
+    strncpy(part5, binary_string+16,4);
+
+    hex_string[0] = four_bit_string_to_hex(part1);
+    hex_string[1] = four_bit_string_to_hex(part2);
+    hex_string[2] = four_bit_string_to_hex(part3);
+    hex_string[3] = four_bit_string_to_hex(part4);
+    hex_string[4] = four_bit_string_to_hex(part5);
+    hex_string[5] = '\0';
+
 }
