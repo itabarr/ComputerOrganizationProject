@@ -5,12 +5,13 @@
 #define MAX_LINE_SIZE 300
 #define FILE_SIZE 4096
 #define MAX_LABEL_SIZE 30
+#define MAX_DIR_LEN 1024
 
 int _is_label(char* line);
 int _is_word(char* line);
 int _is_imm(char* line);
 char* get_label_name(char* line);
-void first_iteration_get_labels(char *input_filename ,char *labels_table_filename);
+void first_iteration_get_labels_and_words(char *input_filename ,char *labels_table_filename,char *words_filename);
 void second_iteration_get_opcodes(char *input_filename , char *output_filename);
 int opcode_to_int(char line[]);
 int register_to_int(char line[] , int n_register);
@@ -22,26 +23,57 @@ void int_to_fixed_length_binary(int n, char org_binary_string[], int length);
 char four_bit_string_to_hex(char four_bit_string[]);
 int get_label_by_name(char* label_name, char* filename);
 void binary_string_to_hex(char binary_string[21] , char hex_string[6] );
+void third_iteration_write_words(char *input_filename ,char *words_filename);
+
+// TODO: implement words searching
+// TODO: supprt hexadecimal foramt in words and imm const
+// TODO: read and understand wtf is simulator
+// TODO: read the refrence
+// TODO: omer - explore the asm test files
+// TODO: itamar - start work on the pdf
+
 
 int main(int argc, char* argv[]) {
 
-    char input_filename[] = "fib.asm";
+    char input_filename[MAX_DIR_LEN], output_filename[MAX_DIR_LEN];
     char labels_filename[] = "labels.txt";
-    char output_filename[] = "memin.txt";
+    char words_filename[] = "words.txt";
 
-    first_iteration_get_labels(input_filename , labels_filename);
+    if (argc!=3 && argc!=1){
+        printf("Error: Zero or Two arguments are required.\n");
+        return 1;
+    }
+
+    if (argc == 1){
+        strcpy(input_filename,"fib.asm");
+        strcpy(output_filename,"memin.txt");
+    }
+
+    if (argc == 3){
+        strcpy(input_filename,argv[1]);
+        strcpy(output_filename,argv[2]);
+    }
+    
+    remove(output_filename);
+    remove(labels_filename);
+
+    // char input_filename[] = "fib.asm";
+    // char labels_filename[] = "labels.txt";
+    // char output_filename[] = "memin.txt";
+
+    first_iteration_get_labels_and_words(input_filename , labels_filename,words_filename);
     second_iteration_get_opcodes(input_filename , output_filename);
     return 0;
 }
 
-void first_iteration_get_labels(char *input_filename ,char *labels_filename){
+void first_iteration_get_labels_and_words(char *input_filename ,char *labels_filename, char *words_filename){
     
     remove(labels_filename);
     
     // Open file for reading and writing
     FILE *input = fopen(input_filename, "r");
     FILE *output = fopen(labels_filename, "w");
-
+    FILE *words_file = fopen(words_filename, "w");
     // Check for successful file open
     if (input == NULL) {
         printf("Error: Unable to open file %s\n", input_filename);
@@ -55,7 +87,8 @@ void first_iteration_get_labels(char *input_filename ,char *labels_filename){
     char line[MAX_LINE_SIZE];
     char *label;
     char outline[MAX_LABEL_SIZE + 10];
-    
+    int binary_index_couter = 0; 
+
     while (fgets(tmpline, sizeof tmpline, input)) {
         strcpy(line, tmpline);
         remove_comment(line);
@@ -63,7 +96,7 @@ void first_iteration_get_labels(char *input_filename ,char *labels_filename){
         if (_is_label(line)){
 
             label = get_label_name(line);
-            itoa(line_index , line_index_str , 10);
+            itoa(binary_index_couter , line_index_str , 10);
 
             strcpy(outline , label);
             strcpy(outline + strlen(label)+1 ,line_index_str);
@@ -75,11 +108,26 @@ void first_iteration_get_labels(char *input_filename ,char *labels_filename){
             fprintf (output, "%s\n", outline);
             printf("%s\n", outline);
         }  
+        else if(_is_word(line)){
+            binary_index_couter++;
+        }
+        else if(_is_imm(line)){
+            binary_index_couter = binary_index_couter + 2;
 
+        }
+
+        else{
+            binary_index_couter++;
+        }
+        
         line_index++;
+        //printf("%d\n" , line_index);
     }
+
+    
     fclose(input);
     fclose(output);
+    fclose(words_file);
     free(label);
 }
 
@@ -159,7 +207,7 @@ void second_iteration_get_opcodes(char *input_filename , char *output_filename){
                 }
 
                 else{
-                    int_to_fixed_length_binary(imm_const,imm_opcode,20);
+                    int_to_fixed_length_binary(imm,imm_opcode,20);
                     imm_opcode[20] = '\0'; 
                     binary_string_to_hex(imm_opcode , hex_opcode); 
                 }
@@ -184,6 +232,10 @@ void second_iteration_get_opcodes(char *input_filename , char *output_filename){
     
 }
 
+
+void third_iteration_write_words(char *input_filename ,char *words_filename){
+    printf("NOT DOING NOTHING");
+}
 char *get_label_name(char* line){
 
     // Allocate memory for label
@@ -256,6 +308,21 @@ int _is_imm_old(char* line){
     } 
 
     return 1;
+}
+
+int _is_imm(char* line){
+
+    int register_1 , register_2, register_3;
+    register_1 = register_to_int(line,1);
+    register_2 = register_to_int(line,2);
+    register_3 = register_to_int(line,3);
+
+    if (register_1 == 1 || register_2 == 1 || register_3 ==1){
+        return 1;
+    }
+
+    return 0;
+    
 }
 
 int opcode_to_int(char line[]) {
@@ -440,8 +507,6 @@ char four_bit_string_to_hex(char four_bit_string[]) {
     return hex_characters[value];
 }
 
-
-
 int get_label_by_name(char* label_name, char* filename) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
@@ -482,7 +547,6 @@ int get_label_by_name(char* label_name, char* filename) {
     return -1;  // Return -1 if the name is not found
 }
 
-
 void binary_string_to_hex(char binary_string[21] , char hex_string[6] ){
 
     char part1[5];
@@ -510,3 +574,5 @@ void binary_string_to_hex(char binary_string[21] , char hex_string[6] ){
     hex_string[5] = '\0';
 
 }
+
+
