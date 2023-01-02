@@ -1,43 +1,66 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
+#define MAX_KEY_LEN 50
+#define MAX_VALUE_LEN 100
 #define MAX_LINE_SIZE 300
 #define FILE_SIZE 4096
 #define MAX_LABEL_SIZE 30
 #define MAX_DIR_LEN 1024
 
-int _is_label(char* line);
-int _is_word(char* line);
-int _is_imm(char* line);
-char* get_label_name(char* line);
-void first_iteration_get_labels_and_words(char *input_filename ,char *labels_table_filename,char *words_filename);
-void second_iteration_get_opcodes(char *input_filename , char *output_filename);
-int opcode_to_int(char line[]);
-int register_to_int(char line[] , int n_register);
-char* remove_empty_chars(char *line);
-char* get_n_substring(char *str, int n);
-void get_imm_const(char line[] , char imm_cost[]);
-void remove_comment(char *line);
-void int_to_fixed_length_binary(int n, char org_binary_string[], int length);
-char four_bit_string_to_hex(char four_bit_string[]);
-int get_label_by_name(char* label_name, char* filename);
-void binary_string_to_hex(char binary_string[21] , char hex_string[6] );
-void third_iteration_write_words(char *input_filename ,char *words_filename);
+// A node in the directory
+typedef struct Node {
+    char key[MAX_KEY_LEN];
+    char value[MAX_VALUE_LEN];
+    struct Node* next;
+} Node;
 
-// TODO: implement words searching
-// TODO: supprt hexadecimal foramt in words and imm const
-// TODO: read and understand wtf is simulator
-// TODO: read the refrence
-// TODO: omer - explore the asm test files
-// TODO: itamar - start work on the pdf
+// The directory
+typedef struct Directory {
+    Node* head;
+} Directory;
+
+// Struct methods
+Node* create_node(char* key, char* value);
+Directory* create_directory();
+void add_key_value(Directory* directory, char* key, char* value);
+char* search_by_key(Directory* directory, char* key);
+
+// Lookup tables
+int register_to_int(char* line , int n_register);
+int opcode_to_int(char* line);
+int get_last_word_address(Directory *words);
+
+// Strings methods
+int is_label(char *line);
+int is_word(char *line);
+int is_imm(char* line);
+int is_hex_num(char* str);
+void remove_comment(char *line);
+void get_label(char *line , char* label);
+char* get_n_substring(char *str, int n);
+void parse_opcode_line(char *line , char *hexline);
+void parse_imm_const(char *imm_const , char *hex_line,Directory* labels );
+void int_to_fixed_length_binary(int n, char org_binary_string[], int length);
+char four_bit_string_to_hex(char *four_bit_string);
+int four_bit_string_to_int(char* str);
+
+// Main methods
+void create_label_and_words_directories(char *input_filename, Directory* labels, Directory* words);
+void create_memin_file(char *input_filename , char *output_filename , Directory* labels);
+void add_words_to_memin(char *input_filename, Directory* words);
+
+// Other methods
+int min(int a, int b);
+int get_file_len(char *input_filename);
+
+//TODO: Improve big function in the end
+//TODO: Handle words
 
 
 int main(int argc, char* argv[]) {
-
     char input_filename[MAX_DIR_LEN], output_filename[MAX_DIR_LEN];
-    char labels_filename[] = "labels.txt";
-    char words_filename[] = "words.txt";
 
     if (argc!=3 && argc!=1){
         printf("Error: Zero or Two arguments are required.\n");
@@ -53,243 +76,210 @@ int main(int argc, char* argv[]) {
         strcpy(input_filename,argv[1]);
         strcpy(output_filename,argv[2]);
     }
-    
+
     remove(output_filename);
-    remove(labels_filename);
+    Directory *labels = create_directory();
+    Directory *words =  create_directory();
+    create_label_and_words_directories(input_filename , labels , words);
+    create_memin_file(input_filename , output_filename, labels);
+    add_words_to_memin(output_filename, words);
 
-    // char input_filename[] = "fib.asm";
-    // char labels_filename[] = "labels.txt";
-    // char output_filename[] = "memin.txt";
-
-    first_iteration_get_labels_and_words(input_filename , labels_filename,words_filename);
-    second_iteration_get_opcodes(input_filename , output_filename);
     return 0;
 }
 
-void first_iteration_get_labels_and_words(char *input_filename ,char *labels_filename, char *words_filename){
-    
-    remove(labels_filename);
-    
+
+// Creates a new node with the given key and value
+Node* create_node(char* key, char* value) {
+    Node* node = (Node*) malloc(sizeof(Node));
+    strcpy(node->key, key);
+    strcpy(node->value, value);
+    node->next = NULL;
+    return node;
+}
+
+// Creates a new directory
+Directory* create_directory() {
+    Directory* directory = (Directory*) malloc(sizeof(Directory));
+    directory->head = NULL;
+    return directory;
+}
+
+// Adds a key-value pair to the directory
+void add_key_value(Directory* directory, char* key, char* value) {
+    Node* node = create_node(key, value);
+    node->next = directory->head;
+    directory->head = node;
+}
+
+// Searches for a value in the directory by key
+// Returns the value if found, or NULL if not found
+char* search_by_key(Directory* directory, char* key) {
+    Node* current = directory->head;
+    while (current != NULL) {
+        if (strcmp(current->key, key) == 0) {
+            return current->value;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+// Do first iteration to get labels directory
+void create_label_and_words_directories(char *input_filename , Directory* labels , Directory* words){
     // Open file for reading and writing
     FILE *input = fopen(input_filename, "r");
-    FILE *output = fopen(labels_filename, "w");
-    FILE *words_file = fopen(words_filename, "w");
-    // Check for successful file open
-    if (input == NULL) {
-        printf("Error: Unable to open file %s\n", input_filename);
-        return;
-    }
 
-    // Read the file line by line
-    int line_index = 0;
-    char line_index_str[5];
-    char tmpline[MAX_LINE_SIZE];
+    char i = 0;
+    int j = 0;
+    char tmp_key[MAX_KEY_LEN];
+    char tmp_value[MAX_VALUE_LEN];
     char line[MAX_LINE_SIZE];
-    char *label;
-    char outline[MAX_LABEL_SIZE + 10];
-    int binary_index_couter = 0; 
+    char *ptmp;
+    int hex_to_int;
 
-    while (fgets(tmpline, sizeof tmpline, input)) {
-        strcpy(line, tmpline);
+    while (fgets(line, sizeof line, input)) {
         remove_comment(line);
 
-        if (_is_label(line)){
-
-            label = get_label_name(line);
-            itoa(binary_index_couter , line_index_str , 10);
-
-            strcpy(outline , label);
-            strcpy(outline + strlen(label)+1 ,line_index_str);
-            outline[strlen(label)] = ' ';
-            outline[strlen(label) + 1 + strlen(line_index_str)] = '\0';
-            
-
-            //Update label in file + Print the label to the screen
-            fprintf (output, "%s\n", outline);
-            printf("%s\n", outline);
-        }  
-        else if(_is_word(line)){
-            binary_index_couter++;
+        if (is_label(line)){
+            get_label(line,tmp_key);
+            itoa(j,tmp_value,10);
+            add_key_value(labels,tmp_key,tmp_value);
+            printf("%s %s\n",tmp_key,tmp_value);
         }
-        else if(_is_imm(line)){
-            binary_index_couter = binary_index_couter + 2;
 
+        
+        else if(is_word(line)){
+            ptmp = get_n_substring(line, 1);
+            strcpy(tmp_key,ptmp);
+        
+            hex_to_int = strtol(tmp_key,NULL,0);
+            itoa(hex_to_int,tmp_key,10);
+
+            ptmp = get_n_substring(line,2);
+            strcpy(tmp_value,ptmp);
+
+            if (!is_hex_num(tmp_value)){
+                //imm = atoi(tmp_value);
+                hex_to_int = strtol(tmp_value,NULL,0);
+                sprintf(tmp_value,"%05X", hex_to_int & 0xFFFFF);
+            }
+
+            else{
+                strcpy(tmp_value , tmp_value+2);
+            }
+
+            add_key_value(words,tmp_key,tmp_value);
+            printf("%s %s\n",tmp_key,tmp_value);
         }
 
         else{
-            binary_index_couter++;
+
+            if (is_imm(line)){
+                j = j+2;
+            }
+
+            else{
+                j++;
+            }
         }
-        
-        line_index++;
-        //printf("%d\n" , line_index);
+        //printf("%d\n", i);
+        i++;
     }
 
-    
-    fclose(input);
-    fclose(output);
-    fclose(words_file);
-    free(label);
 }
 
-void second_iteration_get_opcodes(char *input_filename , char *output_filename){
-    
+// Do second iteration and write output file
+void create_memin_file(char *input_filename , char *output_filename, Directory* labels){
     remove(output_filename);
     
     // Open file for reading and writing
     FILE *input = fopen(input_filename, "r");
     FILE *output = fopen(output_filename, "w");
 
-    // Check for successful file open
-    if (input == NULL) {
-        printf("Error: Unable to open file %s\n", input_filename);
-        return;
-    }
-
-    // Read the file line by line
-    int line_index = 0;
-    char tmpline[MAX_LINE_SIZE+1];
+    int i = 0;
     char line[MAX_LINE_SIZE];
-    char imm_const[MAX_LABEL_SIZE];
-    char hex_opcode[6];
+    char* imm_str;
+    char* word_add;
+    char* word_val;
+    char hexline[6];
+    hexline[5] = '\0';
 
-    int opcode;
-    int register_1;
-    int register_2;
-    int register_3;
-    int imm;
-    
+    while (fgets(line, sizeof line, input)) {
 
-    char binary_opecode_1[9];
-    char binary_opecode_2[5];
-    char binary_register_1[5];
-    char binary_register_2[5];
-    char binary_register_3[5];
-    char imm_opcode[21];
+        if (!is_label(line) && !is_word(line)){
+            parse_opcode_line(line , hexline);
+            fprintf(output, "%s\n", hexline);
 
-    while (fgets(tmpline, sizeof tmpline, input)) {
-        strcpy(line, tmpline);
-        remove_comment(line);
-        //str_replace(tmpline, "#", "\0");
-
-        if (!_is_label(line) && !_is_word(line)){
-            opcode = opcode_to_int(line);
-            int_to_fixed_length_binary(opcode ,binary_opecode_1, 8);
-            strncpy(binary_opecode_2 , binary_opecode_1 + 4 , 5);
-            binary_opecode_1[4] = '\0';
-
-
-            register_1 = register_to_int(line,1);
-            int_to_fixed_length_binary(register_1 ,binary_register_1, 4);
-            register_2 = register_to_int(line,2);
-            int_to_fixed_length_binary(register_2 ,binary_register_2, 4);
-            register_3 = register_to_int(line,3);
-            int_to_fixed_length_binary(register_3 ,binary_register_3, 4);
-            
-            
-            hex_opcode[0] = four_bit_string_to_hex(binary_opecode_1);
-            hex_opcode[1] = four_bit_string_to_hex(binary_opecode_2);
-            hex_opcode[2] = four_bit_string_to_hex(binary_register_1);
-            hex_opcode[3] = four_bit_string_to_hex(binary_register_2);
-            hex_opcode[4] = four_bit_string_to_hex(binary_register_3);
-            hex_opcode[5] = '\0';
-
-            //Update label in file + Print the label to the screen
-            fprintf (output, "%s\n", hex_opcode);
-            printf("OPCODE , %d ,%s\n" , line_index , hex_opcode);
-            if (register_1 == 1 || register_2 == 1 || register_3 ==1){
-                get_imm_const(line , imm_const);
-                imm = get_label_by_name(imm_const , "labels.txt");
-
-                if (imm == -1){
-                    int_to_fixed_length_binary((atoi(imm_const)),imm_opcode,20);
-                    imm_opcode[20] = '\0';
-                    binary_string_to_hex(imm_opcode , hex_opcode);
-                }
-
-                else{
-                    int_to_fixed_length_binary(imm,imm_opcode,20);
-                    imm_opcode[20] = '\0'; 
-                    binary_string_to_hex(imm_opcode , hex_opcode); 
-                }
-                fprintf(output, "%s\n" ,hex_opcode);
-                
+            if (is_imm(line)){
+                imm_str = get_n_substring(line , 4);
+                parse_imm_const(imm_str , hexline ,labels);
+                fprintf(output, "%s\n", hexline);
+                //printf("%s\n" , imm_str);
             }
-        }  
-        else if(_is_word(line)){
-            fprintf(output, "WORD\n");
-            printf("WORD , %d\n" , line_index);
-        }
-        else if(_is_label(line)){
-            //fprintf (output, "LABEL\n");
-            printf("LABEL , %d\n" , line_index);
+            
+            printf("%s %d\n" , hexline,i);
         }
 
-        line_index++;
         
+        i++;
+    }
+    fclose(input);
+    fclose(output);
+
+}
+
+//Add words to memin file
+void add_words_to_memin(char *input_filename, Directory* words){
+
+    // init variables
+    int i = get_file_len(input_filename); 
+    int max_address = get_last_word_address(words);
+    int last_row = min(FILE_SIZE-1, max_address);
+    char key[5]; 
+    char *word;
+
+    // Open file for reading and writing
+    FILE *input = fopen(input_filename , "a");
+    
+    while (i <= last_row){
+        itoa(i, key, 10);
+        word = search_by_key(words, key);
+
+        if (word !=NULL){
+            fprintf(input, "%s\n", word);
+        }
+
+        else{
+            fprintf(input, "00000\n");
+        }
+            
+
+        i++;
     }
 
-    
-    
-}
-
-
-void third_iteration_write_words(char *input_filename ,char *words_filename){
-    printf("NOT DOING NOTHING");
-}
-char *get_label_name(char* line){
-
-    // Allocate memory for label
-    char *label = (char*) malloc(MAX_LINE_SIZE * sizeof(char));
-    
-    // Get where the label ends with the ":" char
-    char *colon_ptr;
-    colon_ptr = strstr(line, ":");
-    int colon_index = colon_ptr - line;
-
-    // Copy only the label name to the memory and place "\0" in the end
-    strncpy(label, line, colon_index);
-    label[colon_index] = '\0';
-
-    // Free unused memory
-    free(label + colon_index+1);
-
-    return label;
-    
-}
-
-void get_imm_const(char line[] , char imm_cost[]){
-    
-    char *tmp_imm_const;
-    tmp_imm_const = get_n_substring(line , 4);
-    strcpy(imm_cost , tmp_imm_const);
+    fclose(input);
     
 
 }
 
-int _is_label(char* line){
-    
-
-    char* colon_ptr;
-    colon_ptr = strstr(line, ":");
-
-    if (colon_ptr == NULL){
-        return 0;
+// Check if line is a label line
+int is_label(char *line){
+    char *c = strchr(line, ':') ;
+    if (c != NULL){
+        return 1;
     }
-
-    return 1;
-
+    return 0;
 }
 
-int _is_word(char* line){
+// Check if line is a word line
+int is_word(char *line){
     char* p = get_n_substring(line , 0);
-    
     if (strlen(p) == 4){
         if (!strncmp("word",p,4)){
             return 1;
-        }
-        
+        }  
     }
-     if (strlen(p) == 5){
+    else if (strlen(p) == 5){
         if (!strncmp(".word",p,5)){
             return 1;
         }
@@ -297,20 +287,10 @@ int _is_word(char* line){
     }
 
     return 0;
-
 }
 
-int _is_imm_old(char* line){
-    char* p = get_n_substring(line , 4);
-
-    if (!strncmp("0",p,4)){
-        return 0;
-    } 
-
-    return 1;
-}
-
-int _is_imm(char* line){
+// Check if line is imm
+int is_imm(char* line){
 
     int register_1 , register_2, register_3;
     register_1 = register_to_int(line,1);
@@ -325,69 +305,65 @@ int _is_imm(char* line){
     
 }
 
-int opcode_to_int(char line[]) {
-    char* p = get_n_substring(line , 0);
-
-    if      (!strncmp("add",p,3)){ return 0; }
-    else if (!strncmp("sub",p,3)){ return 1; }
-    else if (!strncmp("mul", p, 3)){ return 2; }
-    else if (!strncmp("and", p, 3)){ return 3; }
-    else if (!strncmp("or", p, 3)){ return 4; }
-    else if (!strncmp("xor", p, 3)){ return 5; }
-    else if (!strncmp("sll", p, 3)){ return 6; }
-    else if (!strncmp("sra", p, 3)){ return 7; }
-    else if (!strncmp("srl", p, 3)){ return 8; }
-    else if (!strncmp("beq", p, 3)){ return 9; }
-    else if (!strncmp("bne", p, 3)){ return 10; }
-    else if (!strncmp("blt", p, 3)){ return 11; }
-    else if (!strncmp("bgt", p, 3)){ return 12; }
-    else if (!strncmp("ble", p, 3)){ return 13; }
-    else if (!strncmp("bge", p, 3)){ return 14; }
-    else if (!strncmp("jal", p, 3)){ return 15; }
-    else if (!strncmp("lw", p, 2)){ return 16; }
-    else if (!strncmp("sw", p, 2)){ return 17; }
-    else if (!strncmp("reti", p, 4)){ return 18; }
-    else if (!strncmp("in", p, 2)){ return 19; }
-    else if (!strncmp("out", p, 3)){ return 20; }
-    else if (!strncmp("halt", p, 4)){ return 21; }
-    else if (!strncmp("word", p, 4)){ return 22; }
-    else{return -1;}    
-
-}
-
-int register_to_int(char line[] , int n_register) {
-    char* p = get_n_substring(line , n_register);
-
-    if      (!strncmp("$zero",p,5)){ return 0; }
-    else if (!strncmp("$imm",p,4)){ return 1; }
-    else if (!strncmp("$v0", p, 3)){ return 2; }
-    else if (!strncmp("$a0", p, 3)){ return 3; }
-    else if (!strncmp("$a1", p, 3)){ return 4; }
-    else if (!strncmp("$a2", p, 3)){ return 5; }
-    else if (!strncmp("a3", p, 3)){ return 6; }
-    else if (!strncmp("$t0", p, 3)){ return 7; }
-    else if (!strncmp("$t1", p, 3)){ return 8; }
-    else if (!strncmp("$t2", p, 3)){ return 9; }
-    else if (!strncmp("$s0", p, 3)){ return 10; }
-    else if (!strncmp("$s1", p, 3)){ return 11; }
-    else if (!strncmp("$s2", p, 3)){ return 12; }
-    else if (!strncmp("$gp", p, 3)){ return 13; }
-    else if (!strncmp("$sp", p, 3)){ return 14; }
-    else if (!strncmp("$ra", p, 3)){ return 15; }
-    else{return -1;}    
-
-}
-
-char *remove_empty_chars(char *line){
+// Check if imm const is label
+int is_imm_label(char* imm_const){
     int i = 0;
-    while(line[i] == ' ' || line[i] == '\t'){
+    if (imm_const[0] == '-'){
         i++;
     }
-    
-    return line + i ;
+    if (imm_const[0+i] < '0' || imm_const[0+i] > '9') {
+        return 1;
+    }
+
+    return 0;
 }
 
+// Check if a number string is in hex format
+int is_hex_num(char* str){
+    char *px = strchr(str, 'x') ;
+    char *pX = strchr(str, 'X') ;
 
+    if (px == NULL && pX == NULL){
+        return 0;
+    }
+
+    return 1;
+}
+
+// Ignore comments by replacing first '#' with '/0' 
+void remove_comment(char *line){
+    char *comment = strchr(line, '#') ;
+    if (strchr(line, '#') != NULL) {
+        *comment = '\0'; 
+    } 
+}
+
+// Set label string as the current label in line 
+void get_label(char *line , char* label){
+    char *tmp_label;
+    int label_size=0;
+    int i=0;
+
+    while (i<MAX_LINE_SIZE){
+        if (*(line+i) == ' ' || *(line+i) == '\t'){
+            i++;
+        } 
+        else if(*(line+i) == ':'){
+            strncpy(label , tmp_label , label_size);
+            *(label+label_size) = '\0';
+            return;
+        }
+        else{
+            tmp_label = line;
+            label_size++;
+            i++;
+        }
+    }
+    
+
+}
+
+// Get the n-th substring inside a string (ignoring spaces and tabs) 
 char* get_n_substring(char *str, int n) {
     char tmpstr[MAX_LINE_SIZE];
     strcpy(tmpstr , str);
@@ -402,50 +378,143 @@ char* get_n_substring(char *str, int n) {
     return p;
 }
 
-void remove_comment(char *str){
-    int i = 0;
-    while (i < MAX_LINE_SIZE){
-        if  ('#' == *(str+i)){
-            *(str+i) = '\0';
-            break;
-        }
+// Get file length
+int get_file_len(char *input_filename){
+    FILE *input = fopen(input_filename, "r");
 
-        if ('\n' == *(str+i)){
-            return;
-        }
-        i++;
-        
+    int len = 0;
+    char line[MAX_LINE_SIZE];
+
+    while (fgets(line, sizeof line, input)) {
+        len++;
     }
+
+    fclose(input);
+    return len;
 
 }
 
-void int_to_fixed_length_binary_old(int n, char org_binary_string[], int length) {
-    char binary_string[MAX_LINE_SIZE];
+// Get max address of words 
+int get_last_word_address(Directory *words){
 
-    if (length < 1) {
-        printf("Error: length must be at least 1\n");
-        
+    Node *word = words ->head;
+    int max_row = 0;
+    int row;
+
+    while (word !=NULL){
+
+        row = atoi(word -> key);
+
+        if (row > max_row){
+            max_row = row;
+        }
+
+        word = word -> next;
+
     }
-
-    // Initialize the buffer with zeros
-    for (int i = 0; i < length; i++) {
-        *(binary_string+i) = '0';
-    }
-    
-    // Convert the integer to binary and store it in the buffer
-    int i = 0;
-    while (n > 0 && i < length) {
-        *(binary_string +length - i - 1) = (n % 2) + '0';
-        n = n / 2;
-        i++;
-    }
-
-    *(binary_string+length) = '\0';
-
-    strncpy(org_binary_string , binary_string ,length+1);
-    
+    return max_row;
 }
 
+// Registers lookup table according to the project definition
+int register_to_int(char* line, int n_register) {
+    char* p = get_n_substring(line , n_register);
+
+    if      (!strcmp("$zero",p)){ return 0; }
+    else if (!strcmp("$imm",p)){ return 1; }
+    else if (!strcmp("$v0", p)){ return 2; }
+    else if (!strcmp("$a0", p)){ return 3; }
+    else if (!strcmp("$a1", p)){ return 4; }
+    else if (!strcmp("$a2", p)){ return 5; }
+    else if (!strcmp("a3", p)){ return 6; }
+    else if (!strcmp("$t0", p)){ return 7; }
+    else if (!strcmp("$t1", p)){ return 8; }
+    else if (!strcmp("$t2", p)){ return 9; }
+    else if (!strcmp("$s0", p)){ return 10; }
+    else if (!strcmp("$s1", p)){ return 11; }
+    else if (!strcmp("$s2", p)){ return 12; }
+    else if (!strcmp("$gp", p)){ return 13; }
+    else if (!strcmp("$sp", p)){ return 14; }
+    else if (!strcmp("$ra", p)){ return 15; }
+    else{return -1;}    
+
+}
+
+// Opcodes lookup table according to the project definition
+int opcode_to_int(char* line) {
+    char* p = get_n_substring(line , 0);
+
+    if      (!strcmp("add",p)){ return 0; }
+    else if (!strcmp("sub",p)){ return 1; }
+    else if (!strcmp("mul", p)){ return 2; }
+    else if (!strcmp("and", p)){ return 3; }
+    else if (!strcmp("or", p)){ return 4; }
+    else if (!strcmp("xor", p)){ return 5; }
+    else if (!strcmp("sll", p)){ return 6; }
+    else if (!strcmp("sra", p)){ return 7; }
+    else if (!strcmp("srl", p)){ return 8; }
+    else if (!strcmp("beq", p)){ return 9; }
+    else if (!strcmp("bne", p)){ return 10; }
+    else if (!strcmp("blt", p)){ return 11; }
+    else if (!strcmp("bgt", p)){ return 12; }
+    else if (!strcmp("ble", p)){ return 13; }
+    else if (!strcmp("bge", p)){ return 14; }
+    else if (!strcmp("jal", p)){ return 15; }
+    else if (!strcmp("lw", p)){ return 16; }
+    else if (!strcmp("sw", p)){ return 17; }
+    else if (!strcmp("reti", p)){ return 18; }
+    else if (!strcmp("in", p)){ return 19; }
+    else if (!strcmp("out", p)){ return 20; }
+    else if (!strcmp("halt", p)){ return 21; }
+    else if (!strcmp("word", p)){ return 22; }
+    else{return -1;}    
+
+}
+
+// Do main opcode parsing to recieve hex format
+void parse_opcode_line(char *line , char *hexline){    
+    
+    int op = opcode_to_int(line);
+    int reg1 = register_to_int(line , 1);
+    int reg2 = register_to_int(line,2);
+    int reg3 = register_to_int(line,3);
+
+    sprintf(hexline, "%0*X", 2 , op);
+    sprintf(hexline+2, "%0*X", 1, reg1);
+    sprintf(hexline+3, "%0*X", 1, reg2);
+    sprintf(hexline+4, "%0*X", 1, reg3);
+
+}
+
+// Do imm const parsing
+void parse_imm_const(char *imm_const , char *hex_line , Directory* labels){
+    int i=0;
+    char binary_string[21];
+
+
+    if (is_imm_label(imm_const)){
+        char* value = search_by_key(labels , imm_const);
+        i = atoi(value);
+        sprintf(hex_line, "%0*X", 5 , i);
+
+    }
+
+    else if(is_hex_num(imm_const)){
+        strcpy(hex_line , imm_const+2);
+    }
+
+    else{
+        i = atoi(imm_const);
+        int_to_fixed_length_binary(i , binary_string , 20);
+
+        hex_line[0] = four_bit_string_to_hex(binary_string);
+        hex_line[1] = four_bit_string_to_hex(binary_string+4);
+        hex_line[2] = four_bit_string_to_hex(binary_string+8);
+        hex_line[3] = four_bit_string_to_hex(binary_string+12);
+        hex_line[4] = four_bit_string_to_hex(binary_string+16);
+        hex_line[5] = '\0';
+    }
+    printf("%d\n", i);
+}
 void int_to_fixed_length_binary(int n, char org_binary_string[], int length) {
     char binary_string[MAX_LINE_SIZE];
     int is_negative = 0;
@@ -501,78 +570,27 @@ void int_to_fixed_length_binary(int n, char org_binary_string[], int length) {
     strncpy(org_binary_string , binary_string ,length+1);
 }
 
-char four_bit_string_to_hex(char four_bit_string[]) {
+char four_bit_string_to_hex(char *four_bit_string) {
     char hex_characters[] = "0123456789ABCDEF";
-    int value = strtol(four_bit_string, NULL, 2);
+    int value =  four_bit_string_to_int(four_bit_string);
     return hex_characters[value];
 }
 
-int get_label_by_name(char* label_name, char* filename) {
-    FILE* file = fopen(filename, "r");
-    if (file == NULL) {
-        return -1;  // Return -1 if the file could not be opened
+int four_bit_string_to_int(char* str) {
+  int result = 0;
+  for (int i = 0; i < 4; i++) {
+    result <<= 1;
+    if (str[i] == '1') {
+      result |= 1;
     }
-
-    int index;
-    char line[MAX_LABEL_SIZE + 10];
-    char tmpline[MAX_LABEL_SIZE + 10];
-    char *lookuplabel;
-    char *lookupindex;
-
-    while (fgets(line, sizeof line , file)) {
-        // Split the line into a name and a number
-        strcpy(tmpline , line);
-
-        lookuplabel = get_n_substring(tmpline , 0);
-        lookupindex = get_n_substring(tmpline , 1);
-
-        int i = 0;
-        while(i < strlen(tmpline)){
-            if (tmpline[i] == ' '){
-                tmpline[i] = '\0';
-            }
-
-            i++;
-        }
-        index = atoi(lookupindex);
-
-        if (strcmp(label_name, lookuplabel) == 0) {
-        // Return the number if the name is found
-            fclose(file);
-            return index;
-        }
-    }
-
-    fclose(file);
-    return -1;  // Return -1 if the name is not found
+  }
+  return result;
 }
 
-void binary_string_to_hex(char binary_string[21] , char hex_string[6] ){
-
-    char part1[5];
-    part1[4] = '\0'; 
-    char part2[5];
-    part2[4] = '\0';
-    char part3[5];
-    part3[4] = '\0';
-    char part4[5];
-    part4[4] = '\0';
-    char part5[5];
-    part5[4] = '\0';
-
-    strncpy(part1, binary_string,4);
-    strncpy(part2, binary_string+4,4);
-    strncpy(part3, binary_string+8,4);
-    strncpy(part4, binary_string+12,4);
-    strncpy(part5, binary_string+16,4);
-
-    hex_string[0] = four_bit_string_to_hex(part1);
-    hex_string[1] = four_bit_string_to_hex(part2);
-    hex_string[2] = four_bit_string_to_hex(part3);
-    hex_string[3] = four_bit_string_to_hex(part4);
-    hex_string[4] = four_bit_string_to_hex(part5);
-    hex_string[5] = '\0';
-
+// get min of two ints
+int min(int a, int b){
+    if (a > b){
+        return b;
+    }
+    return a;
 }
-
-
