@@ -48,4 +48,5 @@ L3:
 	out $t1, $zero, $imm, 20			# update address
 	out $zero, $zero, $imm, 5			# clear irq2 status
 	reti $zero, $zero, $zero, 0			# return from interrupt
-	.word 256 7
+	.word 256 0x00007
+	.word 5000 1
