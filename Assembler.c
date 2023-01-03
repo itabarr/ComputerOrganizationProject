@@ -9,28 +9,28 @@
 #define MAX_LABEL_SIZE 30
 #define MAX_DIR_LEN 1024
 
-// A node in the directory
+// A node in the dictionary
 typedef struct Node {
     char key[MAX_KEY_LEN];
     char value[MAX_VALUE_LEN];
     struct Node* next;
 } Node;
 
-// The directory
-typedef struct Directory {
+// The dictionary
+typedef struct Dictionary {
     Node* head;
-} Directory;
+} Dictionary;
 
 // Struct methods
 Node* create_node(char* key, char* value);
-Directory* create_directory();
-void add_key_value(Directory* directory, char* key, char* value);
-char* search_by_key(Directory* directory, char* key);
+Dictionary* create_dictionary();
+void add_key_value(Dictionary* dictionary, char* key, char* value);
+char* search_by_key(Dictionary* dictionary, char* key);
 
 // Lookup tables
 int register_to_int(char* line , int n_register);
 int opcode_to_int(char* line);
-int get_last_word_address(Directory *words);
+int get_last_word_address(Dictionary *words);
 
 // Strings methods
 int is_label(char *line);
@@ -41,12 +41,12 @@ void remove_comment(char *line);
 void get_label(char *line , char* label);
 char* get_n_substring(char *str, int n);
 void parse_opcode_line(char *line , char *hexline);
-void parse_imm_const(char *imm_const , char *hex_line,Directory* labels );
+void parse_imm_const(char *imm_const , char *hex_line, Dictionary* labels );
 
 // Main methods
-void create_label_and_words_directories(char *input_filename, Directory* labels, Directory* words);
-void create_memin_file(char *input_filename , char *output_filename , Directory* labels);
-void add_words_to_memin(char *input_filename, Directory* words);
+void create_label_and_words_directories(char *input_filename, Dictionary* labels, Dictionary* words);
+void create_memin_file(char *input_filename , char *output_filename , Dictionary* labels);
+void add_words_to_memin(char *input_filename, Dictionary* words);
 
 // Other methods
 int min(int a, int b);
@@ -73,8 +73,8 @@ int main(int argc, char* argv[]) {
     }
 
     remove(output_filename);
-    Directory *labels = create_directory();
-    Directory *words =  create_directory();
+    Dictionary *labels = create_dictionary();
+    Dictionary *words =  create_dictionary();
     create_label_and_words_directories(input_filename , labels , words);
     create_memin_file(input_filename , output_filename, labels);
     add_words_to_memin(output_filename, words);
@@ -92,24 +92,24 @@ Node* create_node(char* key, char* value) {
     return node;
 }
 
-// Creates a new directory
-Directory* create_directory() {
-    Directory* directory = (Directory*) malloc(sizeof(Directory));
-    directory->head = NULL;
-    return directory;
+// Creates a new dictionary
+Dictionary* create_dictionary() {
+    Dictionary* dictionary = (Dictionary*) malloc(sizeof(Dictionary));
+    dictionary->head = NULL;
+    return dictionary;
 }
 
-// Adds a key-value pair to the directory
-void add_key_value(Directory* directory, char* key, char* value) {
+// Adds a key-value pair to the dictionary
+void add_key_value(Dictionary* dictionary, char* key, char* value) {
     Node* node = create_node(key, value);
-    node->next = directory->head;
-    directory->head = node;
+    node->next = dictionary->head;
+    dictionary->head = node;
 }
 
-// Searches for a value in the directory by key
+// Searches for a value in the dictionary by key
 // Returns the value if found, or NULL if not found
-char* search_by_key(Directory* directory, char* key) {
-    Node* current = directory->head;
+char* search_by_key(Dictionary* dictionary, char* key) {
+    Node* current = dictionary->head;
     while (current != NULL) {
         if (strcmp(current->key, key) == 0) {
             return current->value;
@@ -119,8 +119,8 @@ char* search_by_key(Directory* directory, char* key) {
     return NULL;
 }
 
-// Do first iteration to get labels directory
-void create_label_and_words_directories(char *input_filename , Directory* labels , Directory* words){
+// Do first iteration to get labels dictionary
+void create_label_and_words_directories(char *input_filename , Dictionary* labels , Dictionary* words){
     // Open file for reading and writing
     FILE *input = fopen(input_filename, "r");
 
@@ -181,7 +181,7 @@ void create_label_and_words_directories(char *input_filename , Directory* labels
 }
 
 // Do second iteration and write output file
-void create_memin_file(char *input_filename , char *output_filename, Directory* labels){
+void create_memin_file(char *input_filename , char *output_filename, Dictionary* labels){
     remove(output_filename);
     
     // Open file for reading and writing
@@ -217,7 +217,7 @@ void create_memin_file(char *input_filename , char *output_filename, Directory* 
 }
 
 //Add words to memin file
-void add_words_to_memin(char *input_filename, Directory* words){
+void add_words_to_memin(char *input_filename, Dictionary* words){
 
     // init variables
     int i = get_file_len(input_filename); 
@@ -382,7 +382,7 @@ int get_file_len(char *input_filename){
 }
 
 // Get max address of words 
-int get_last_word_address(Directory *words){
+int get_last_word_address(Dictionary *words){
 
     Node *word = words ->head;
     int max_row = 0;
@@ -473,7 +473,7 @@ void parse_opcode_line(char *line , char *hexline){
 }
 
 // Do imm const parsing
-void parse_imm_const(char *imm_const , char *hex_line , Directory* labels){
+void parse_imm_const(char *imm_const , char *hex_line , Dictionary* labels){
     int i=0;
     char binary_string[21];
 
