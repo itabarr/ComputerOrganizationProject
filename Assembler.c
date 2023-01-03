@@ -26,11 +26,11 @@ Node* create_node(char* key, char* value);
 Dictionary* create_dictionary();
 void add_key_value(Dictionary* dictionary, char* key, char* value);
 char* search_by_key(Dictionary* dictionary, char* key);
+int get_last_word_address(Dictionary *words);
 
-// Lookup tables
+// Registers and Opcodes converter
 int register_to_int(char* line , int n_register);
 int opcode_to_int(char* line);
-int get_last_word_address(Dictionary *words);
 
 // Strings methods
 int is_label(char *line);
