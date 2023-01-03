@@ -42,9 +42,6 @@ void get_label(char *line , char* label);
 char* get_n_substring(char *str, int n);
 void parse_opcode_line(char *line , char *hexline);
 void parse_imm_const(char *imm_const , char *hex_line,Directory* labels );
-void int_to_fixed_length_binary(int n, char org_binary_string[], int length);
-char four_bit_string_to_hex(char *four_bit_string);
-int four_bit_string_to_int(char* str);
 
 // Main methods
 void create_label_and_words_directories(char *input_filename, Directory* labels, Directory* words);
@@ -55,10 +52,8 @@ void add_words_to_memin(char *input_filename, Directory* words);
 int min(int a, int b);
 int get_file_len(char *input_filename);
 
-//TODO: Improve big function in the end
-//TODO: Handle words
 
-
+// Main function
 int main(int argc, char* argv[]) {
     char input_filename[MAX_DIR_LEN], output_filename[MAX_DIR_LEN];
 
@@ -144,7 +139,6 @@ void create_label_and_words_directories(char *input_filename , Directory* labels
             get_label(line,tmp_key);
             itoa(j,tmp_value,10);
             add_key_value(labels,tmp_key,tmp_value);
-            printf("%s %s\n",tmp_key,tmp_value);
         }
 
         
@@ -167,9 +161,7 @@ void create_label_and_words_directories(char *input_filename , Directory* labels
             else{
                 strcpy(tmp_value , tmp_value+2);
             }
-
             add_key_value(words,tmp_key,tmp_value);
-            printf("%s %s\n",tmp_key,tmp_value);
         }
 
         else{
@@ -216,11 +208,7 @@ void create_memin_file(char *input_filename , char *output_filename, Directory* 
                 fprintf(output, "%s\n", hexline);
                 //printf("%s\n" , imm_str);
             }
-            
-            printf("%s %d\n" , hexline,i);
-        }
-
-        
+        }  
         i++;
     }
     fclose(input);
@@ -259,7 +247,6 @@ void add_words_to_memin(char *input_filename, Directory* words){
 
     fclose(input);
     
-
 }
 
 // Check if line is a label line
@@ -490,7 +477,6 @@ void parse_imm_const(char *imm_const , char *hex_line , Directory* labels){
     int i=0;
     char binary_string[21];
 
-
     if (is_imm_label(imm_const)){
         char* value = search_by_key(labels , imm_const);
         i = atoi(value);
@@ -498,96 +484,13 @@ void parse_imm_const(char *imm_const , char *hex_line , Directory* labels){
 
     }
 
-    else if(is_hex_num(imm_const)){
-        strcpy(hex_line , imm_const+2);
-    }
-
     else{
-        i = atoi(imm_const);
-        int_to_fixed_length_binary(i , binary_string , 20);
-
-        hex_line[0] = four_bit_string_to_hex(binary_string);
-        hex_line[1] = four_bit_string_to_hex(binary_string+4);
-        hex_line[2] = four_bit_string_to_hex(binary_string+8);
-        hex_line[3] = four_bit_string_to_hex(binary_string+12);
-        hex_line[4] = four_bit_string_to_hex(binary_string+16);
-        hex_line[5] = '\0';
+        i = strtol(imm_const,NULL,0);
+        sprintf(hex_line,"%05X", i & 0xFFFFF);
     }
-    printf("%d\n", i);
-}
-void int_to_fixed_length_binary(int n, char org_binary_string[], int length) {
-    char binary_string[MAX_LINE_SIZE];
-    int is_negative = 0;
-
-    if (length < 1) {
-        printf("Error: length must be at least 1\n");
-        
-    }
-
-    // Initialize the buffer with zeros
-    for (int i = 0; i < length; i++) {
-        *(binary_string+i) = '0';
-    }
-
-    // Check if the number is negative and set the flag accordingly
-    if (n < 0) {
-        is_negative = 1;
-        n = -n;
-    }
-
-    // Convert the integer to binary and store it in the buffer
-    int i = 0;
-    while (n > 0 && i < length) {
-        *(binary_string +length - i - 1) = (n % 2) + '0';
-        n = n / 2;
-        i++;
-    }
-
-    // If the number is negative, invert the bits and add 1 to get the two's complement representation
-    if (is_negative) {
-        for (int i = 0; i < length; i++) {
-            if (*(binary_string+i) == '0') {
-                *(binary_string+i) = '1';
-            } else {
-                *(binary_string+i) = '0';
-            }
-        }
-        
-        // Add 1 to the binary representation to get the two's complement
-        int carry = 1;
-        for (int i = length - 1; i >= 0; i--) {
-            if (*(binary_string+i) == '1' && carry == 1) {
-                *(binary_string+i) = '0';
-            } else if (*(binary_string+i) == '0' && carry == 1) {
-                *(binary_string+i) = '1';
-                carry = 0;
-            }
-        }
-    }
-
-    *(binary_string+length) = '\0';
-
-    strncpy(org_binary_string , binary_string ,length+1);
 }
 
-char four_bit_string_to_hex(char *four_bit_string) {
-    char hex_characters[] = "0123456789ABCDEF";
-    int value =  four_bit_string_to_int(four_bit_string);
-    return hex_characters[value];
-}
-
-int four_bit_string_to_int(char* str) {
-  int result = 0;
-  for (int i = 0; i < 4; i++) {
-    result <<= 1;
-    if (str[i] == '1') {
-      result |= 1;
-    }
-  }
-  return result;
-}
-
-// get min of two ints
+// Get min of two ints
 int min(int a, int b){
     if (a > b){
         return b;
