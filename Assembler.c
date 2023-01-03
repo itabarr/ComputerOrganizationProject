@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_KEY_LEN 50
-#define MAX_VALUE_LEN 100
-#define MAX_LINE_SIZE 300
-#define FILE_SIZE 4096
-#define MAX_LABEL_SIZE 30
-#define MAX_DIR_LEN 1024
+#define MAX_KEY_LEN 50          // Max key len size (worst is MAX_LABEL_SIZE) 
+#define MAX_VALUE_LEN 8         // Max dictionary value size (worst is '0X00000') 
+#define MAX_LINE_SIZE 300       // Max memin file line size (as defined in question)
+#define FILE_SIZE 4096          // Max memory length (as defined in question)
+#define MAX_LABEL_SIZE 50       // Max label name size (as defined in question)
+#define MAX_DIR_LEN 1024        // Max names of the input files
 
 // A node in the dictionary
 typedef struct Node {
@@ -101,6 +101,7 @@ Dictionary* create_dictionary() {
 
 // Adds a key-value pair to the dictionary
 void add_key_value(Dictionary* dictionary, char* key, char* value) {
+    printf("%s\n" , value);
     Node* node = create_node(key, value);
     node->next = dictionary->head;
     dictionary->head = node;
