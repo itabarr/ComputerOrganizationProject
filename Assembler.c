@@ -101,7 +101,7 @@ Dictionary* create_dictionary() {
 
 // Adds a key-value pair to the dictionary
 void add_key_value(Dictionary* dictionary, char* key, char* value) {
-    printf("%s\n" , value);
+    //printf("%s\n" , value);
     Node* node = create_node(key, value);
     node->next = dictionary->head;
     dictionary->head = node;
@@ -211,6 +211,7 @@ void create_memin_file(char *input_filename , char *output_filename, Dictionary*
             }
         }  
         i++;
+        //printf("%d" , i);
     }
     fclose(input);
     fclose(output);
@@ -435,7 +436,8 @@ int opcode_to_int(char* line) {
     else if (!strcmp("sub",p)){ return 1; }
     else if (!strcmp("mul", p)){ return 2; }
     else if (!strcmp("and", p)){ return 3; }
-    else if (!strcmp("or", p)){ return 4; }
+    else if (!strcmp("or", p)){ 
+        return 4; }
     else if (!strcmp("xor", p)){ return 5; }
     else if (!strcmp("sll", p)){ return 6; }
     else if (!strcmp("sra", p)){ return 7; }
@@ -449,11 +451,7 @@ int opcode_to_int(char* line) {
     else if (!strcmp("jal", p)){ return 15; }
     else if (!strcmp("lw", p)){ return 16; }
     else if (!strcmp("sw", p)){ return 17; }
-    else if (!strcmp("reti", p)){ return 18; }
-    else if (!strcmp("in", p)){ return 19; }
-    else if (!strcmp("out", p)){ return 20; }
-    else if (!strcmp("halt", p)){ return 21; }
-    else if (!strcmp("word", p)){ return 22; }
+    else if (!strcmp("halt", p)){ return 18; }
     else{return -1;}    
 
 }
