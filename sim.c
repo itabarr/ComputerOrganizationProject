@@ -29,7 +29,7 @@ void free_memory(char **memory);
 
 // File updateing methods
 
-void excecute_programm(char **memory , int *registers, FILE *trace , char* cycles_file , char* regout_file);
+void excecute_programm(char **memory , int *registers, char* trace_file, char* cycles_file , char* regout_file);
 void update_trace(FILE *trace , int pc , Instruction instruction , int *registers);
 void write_memout(char *memout_file, char **memory);
 void write_cycles(char *cycles_file, int cycles);
@@ -68,11 +68,8 @@ int main(int argc, char* argv[]) {
     char **memory = init_memory(memin_file);
     int registres[REGISTERS_NUM] = {0};
 
-    FILE *trace = fopen(trace_file, "w");
-
-    excecute_programm(memory , registres , trace , cycles_file , regout_file);
+    excecute_programm(memory , registres , trace_file , cycles_file , regout_file);
     
-    fclose(trace);
     free_memory(memory);
     return 0;
 }
@@ -163,7 +160,10 @@ int is_instruction_imm(Instruction inst){
 }
 
 // Logic
-void excecute_programm(char **memory , int *registers, FILE *trace , char* cycles_file , char* regout_file){
+void excecute_programm(char **memory , int *registers, char* trace_file , char* cycles_file , char* regout_file){
+    
+    FILE* trace = fopen(trace_file, "w");
+    
     // Fetch first instruction
     Instruction inst = create_instruction(memory[0] , memory[1]);
     
@@ -187,14 +187,13 @@ void excecute_programm(char **memory , int *registers, FILE *trace , char* cycle
 
         if (is_instruction_imm(inst)){
             registers[1] = inst.imm;
-
             update_trace(trace , pc , inst , registers);
             pc = pc + 2;
             cycles = cycles + 2;
         }
 
         else{
-            
+            registers[1] = 0;
             update_trace(trace , pc , inst , registers);
             pc++;
             cycles++;
@@ -295,8 +294,6 @@ void excecute_programm(char **memory , int *registers, FILE *trace , char* cycle
 
         inst = create_instruction(memory[pc] , memory[pc+1]);
 
-        
-        
     }
     
 }
@@ -331,11 +328,7 @@ void update_trace(FILE *trace , int pc , Instruction instruction , int *register
 
     fprintf(trace, "%s", tmp_line);
 
-
-    
-
 }
-
 
 
 // Write final memory to memout file
