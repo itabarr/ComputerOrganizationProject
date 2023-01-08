@@ -231,7 +231,7 @@ void add_words_to_memin(char *input_filename, Dictionary* words){
     // Open file for reading and writing
     FILE *input = fopen(input_filename , "a");
     
-    while (i <= last_row){
+    while (i < FILE_SIZE){
         itoa(i, key, 10);
         word = search_by_key(words, key);
 
