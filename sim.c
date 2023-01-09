@@ -176,14 +176,6 @@ void excecute_programm(char **memory , int *registers, char* trace_file , char* 
     
     // // Do main programm loop - stop when encouter halt 
     while (1){
-        if (inst.opcode == 18){
-            update_trace(trace , pc , inst , registers);
-            write_cycles(cycles_file, cycles);
-            write_regout(regout_file, registers);
-            fclose(trace);
-            return;
-
-        }
 
         if (is_instruction_imm(inst)){
             registers[1] = inst.imm;
@@ -275,10 +267,14 @@ void excecute_programm(char **memory , int *registers, char* trace_file , char* 
                 pc = registers[inst.rd];
             }
             break;
+
+        // NEED TO TEST
         case 15: // Do jal
             inst = create_instruction(memory[inst.rd] , memory[inst.rd+1]);
             pc = registers[inst.rs];
             break;
+
+        // NEED TO TEST
         case 16: // Do lw
             
             strncpy(tmp_mem+2 , memory[inst.rt + inst.rs] ,5);
@@ -290,6 +286,12 @@ void excecute_programm(char **memory , int *registers, char* trace_file , char* 
             sprintf(memory[registers[inst.rt + inst.rs]],"%05X", registers[inst.rd] & 0xFFFFF);
             cycles++;
             break;
+        
+        case 18: // Do halt 
+            write_cycles(cycles_file, cycles);
+            write_regout(regout_file, registers);
+            fclose(trace);
+            return;
         }
 
         inst = create_instruction(memory[pc] , memory[pc+1]);
@@ -330,7 +332,6 @@ void update_trace(FILE *trace , int pc , Instruction instruction , int *register
 
 }
 
-
 // Write final memory to memout file
 void write_memout(char *memout_file, char **memory){
     // Open the file for writing
@@ -367,6 +368,7 @@ void write_cycles(char *cycles_file, int cycles){
 
 }
 
+// Write final regout file 
 void write_regout(char *regout_file, int *registers){
     // Open the file for writing
     FILE* fp = fopen(regout_file, "w");
