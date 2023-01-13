@@ -2,7 +2,7 @@
 	add $s1, $zero, $imm, 4096			# $s1 = 4096, initialize reg value with memory size
 	add $t0, $zero, $imm, 0				# $t0 = 0 , initalize reg value with fib0
 	add $t1, $zero, $imm, 1				# $t1 = 1 , initalize reg value with fib1
-	.word 256 0							# mem[256] = 0 , initalize memory value with fib0
+	.word 256 0x0						# mem[256] = 0 , initalize memory value with fib0
 	.word 257 1							# mem[275] = 1 , initalize memory value with fib1
 	add $s0, $zero, $imm , 258			# $s0 = 258 , initalize memory adress value
 	beq $imm, $zero, $zero, fib 		# jump to fib label, start doing function 

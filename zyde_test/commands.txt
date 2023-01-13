@@ -1,0 +1,4 @@
+#Run the following commands from the asm/sim directories (make sure you have the .\numbers_test\numbers.asm availble). 
+
+.\asm.exe .\zyde_test\fibo_zyde.asm .\zyde_test\memin_zyde.txt 
+.\sim.exe .\zyde_test\memin_zyde.txt .\zyde_test\memout_zyde.txt .\zyde_test\regout_zyde.txt .\zyde_test\trace_zyde.txt .\zyde_test\cycles_zyde.txt
