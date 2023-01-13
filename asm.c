@@ -36,7 +36,7 @@ int opcode_to_int(char* line);
 int is_label(char *line);
 int is_word(char *line);
 int is_imm(char* line);
-void remove_comment(char *line);
+int is_empty_line(const char *line);
 void get_label(char *line , char* label);
 char* get_n_substring(char *str, int n);
 void parse_opcode_line(char *line , char *hexline);
@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (argc == 1){
-        strcpy(input_filename,"numbers.asm");
+        strcpy(input_filename,"fib.asm");
         strcpy(output_filename,"memin.txt");
     }
 
@@ -133,7 +133,10 @@ void create_label_and_words_directories(char *input_filename , Dictionary* label
     int hex_to_int;
 
     while (fgets(line, sizeof line, input)) {
-        remove_comment(line);
+        if (is_empty_line(line)){
+            i++;
+            continue;
+        }
 
         if (is_label(line)){
             get_label(line,tmp_key);
@@ -191,7 +194,10 @@ void create_memin_file(char *input_filename , char *output_filename, Dictionary*
     hexline[5] = '\0';
 
     while (fgets(line, sizeof line, input)) {
-
+        if (is_empty_line(line)){
+            i++;
+            continue;
+        }
         if (!is_label(line) && !is_word(line)){
             parse_opcode_line(line , hexline);
             fprintf(output, "%s\n", hexline);
@@ -242,6 +248,16 @@ void add_words_to_memin(char *input_filename, Dictionary* words){
 
     fclose(input);
     
+}
+
+// checks if line is empty
+int is_empty_line(const char *line) {
+    for (int i = 0; (line[i] != '\0') && (line[i] != '#') && (line[i] != '\n'); i++) {
+        if (line[i] != ' ' && line[i] != '\t') {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 // Check if line is a label line
@@ -300,13 +316,6 @@ int is_imm_label(char* imm_const){
     return 0;
 }
 
-// Ignore comments by replacing first '#' with '/0' 
-void remove_comment(char *line){
-    char *comment = strchr(line, '#') ;
-    if (strchr(line, '#') != NULL) {
-        *comment = '\0'; 
-    } 
-}
 
 // Set label string as the current label in line 
 void get_label(char *line , char* label){
@@ -477,3 +486,5 @@ int min(int a, int b){
     }
     return a;
 }
+
+
