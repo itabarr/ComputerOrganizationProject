@@ -29,7 +29,7 @@ void free_memory(char **memory);
 
 // File updateing methods
 
-void excecute_programm(char **memory , int *registers, char* trace_file, char* cycles_file , char* regout_file);
+void excecute_programm(char **memory , int *registers, char* trace_file, char* cycles_file , char* regout_file, char* memout_file);
 void update_trace(FILE *trace , int pc , Instruction instruction , int *registers);
 void write_memout(char *memout_file, char **memory);
 void write_cycles(char *cycles_file, int cycles);
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
     char **memory = init_memory(memin_file);
     int registres[REGISTERS_NUM] = {0};
 
-    excecute_programm(memory , registres , trace_file , cycles_file , regout_file);
+    excecute_programm(memory , registres , trace_file , cycles_file , regout_file , memout_file);
     
     free_memory(memory);
     return 0;
@@ -78,8 +78,8 @@ int main(int argc, char* argv[]) {
 // Init memory array with memin file content
 char **init_memory(char* memin_file){
     // Init 2D array
-    char **memory = (char **)malloc(MEMORY_SIZE * sizeof(char *));
-    for (int i = 0; i < MEMORY_SIZE; i++) {
+    char **memory = (char **)malloc((MEMORY_SIZE+1) * sizeof(char *));
+    for (int i = 0; i < (MEMORY_SIZE+1); i++) {
         memory[i] = (char *)malloc(6 * sizeof(char));
     }
 
@@ -96,7 +96,7 @@ char **init_memory(char* memin_file){
 
     }
 
-    while (row < MEMORY_SIZE){
+    while (row < MEMORY_SIZE+1){
         strncpy(memory[row] , "00000" , 5);
         memory[row][5] = '\0';
         row++;
@@ -160,7 +160,7 @@ int is_instruction_imm(Instruction inst){
 }
 
 // Logic
-void excecute_programm(char **memory , int *registers, char* trace_file , char* cycles_file , char* regout_file){
+void excecute_programm(char **memory , int *registers, char* trace_file , char* cycles_file , char* regout_file, char* memout_file){
     
     FILE* trace = fopen(trace_file, "w");
     
@@ -172,7 +172,6 @@ void excecute_programm(char **memory , int *registers, char* trace_file , char* 
     char tmp_mem[8] = {'\0'};
     tmp_mem[0] = '0';
     tmp_mem[1] = 'X';
-    int try = 0;
     
     // // Do main programm loop - stop when encouter halt 
     while (1){
@@ -268,33 +267,34 @@ void excecute_programm(char **memory , int *registers, char* trace_file , char* 
             }
             break;
 
-        // NEED TO TEST
         case 15: // Do jal
-            inst = create_instruction(memory[inst.rd] , memory[inst.rd+1]);
+            registers[inst.rd] = pc;
             pc = registers[inst.rs];
             break;
 
-        // NEED TO TEST
         case 16: // Do lw
             
-            strncpy(tmp_mem+2 , memory[inst.rt + inst.rs] ,5);
+            strncpy(tmp_mem+2 , memory[registers[inst.rt] + registers[inst.rs]] ,5);
             registers[inst.rd] = strtol(tmp_mem,NULL,0);
             cycles++;
             break;
             
         case 17: // Do sw
-            sprintf(memory[registers[inst.rt + inst.rs]],"%05X", registers[inst.rd] & 0xFFFFF);
+            sprintf(memory[registers[inst.rt] + registers[inst.rs]],"%05X", registers[inst.rd] & 0xFFFFF);
             cycles++;
             break;
         
         case 18: // Do halt 
             write_cycles(cycles_file, cycles);
             write_regout(regout_file, registers);
+            write_memout(memout_file , memory);
             fclose(trace);
             return;
         }
-
+        
         inst = create_instruction(memory[pc] , memory[pc+1]);
+        
+        
 
     }
     
