@@ -11,5 +11,8 @@ add $t0, $imm, $imm, 0xFFFF         #line 9 should be 0FFFF
 .word 104 0x0                       #line 104 should be 00000
 .word 105 0x10                      #line 105 should be 00010
 .word 0x6A -1                       #line 106 (0006A) should be FFFFF (-1)
-.word 0x0006B 1                     #line 107 (0006B) should be 00001 (1)
+.word 0x0006B 1                     #line 107 (0006b) should be 00001 (1) - test lower case
+.word 0x0006c 0Xfff2f               #line 108 (0006c) should be 0FFF2F (1) - test lower case     
+.word 0X0006d 0x0ffff              #line 109 (0006d) should be FFFFF (1) - test lower case      
+
 halt $zero, $zero, $zero, 0

@@ -1,0 +1,2 @@
+.\asm.exe .\fib_test\fib.asm .\fib_test\memin_fib.txt 
+.\sim.exe .\fib_test\memin_fib.txt .\fib_test\memout_fib.txt .\fib_test\regout_fib.txt .\fib_test\trace_fib.txt .\fib_test\cycles_fib.txt
