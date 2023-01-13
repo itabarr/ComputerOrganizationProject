@@ -374,7 +374,7 @@ void write_regout(char *regout_file, int *registers){
     FILE* fp = fopen(regout_file, "w");
     char tmp_line[10] = {'\0'};
     // handle registers
-    for (int i = 0; i < (REGISTERS_NUM); i++) {
+    for (int i = 2; i < (REGISTERS_NUM); i++) {
         sprintf(tmp_line,"%08X\n", registers[i] & 0xFFFFFFFF);
         fprintf(fp, "%s", tmp_line);
     }
