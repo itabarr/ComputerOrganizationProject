@@ -51,7 +51,7 @@ void create_memin_file(char *input_filename, char *output_filename, Dictionary* 
 void add_words_to_memin(char *input_filename, Dictionary* words);
 
 // Other methods
-int min(int a, int b);
+int _min(int a, int b);
 int get_file_len(char *input_filename);
 
 
@@ -191,7 +191,7 @@ void create_memin_file(char *input_filename, char *output_filename, Dictionary* 
 	FILE *output = fopen(output_filename, "w");
 
 	int i = 0;
-	char line[MAX_LINE_SIZE+1];
+	char line[MAX_LINE_SIZE + 1];
 	char* imm_str;
 	char tmp_imm_str[MAX_LINE_SIZE + 1];
 	char hexline[6];
@@ -230,7 +230,7 @@ void add_words_to_memin(char *input_filename, Dictionary* words) {
 	// init variables
 	int i = get_file_len(input_filename);
 	int max_address = get_last_word_address(words);
-	int last_row = min(FILE_SIZE - 1, max_address);
+	int last_row = _min(FILE_SIZE - 1, max_address);
 	char key[5];
 	char *word;
 
@@ -487,7 +487,7 @@ void parse_imm_const(char *imm_const, char *hex_line, Dictionary* labels) {
 }
 
 // Get min of two ints
-int min(int a, int b) {
+int _min(int a, int b) {
 	if (a > b) {
 		return b;
 	}
