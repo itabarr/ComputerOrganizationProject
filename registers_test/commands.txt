@@ -1,0 +1,2 @@
+asm.exe registers_test\registers_test.asm registers_test\tmp_output\memin_registers.txt 
+sim.exe registers_test\tmp_output\memin_registers.txt registers_test\tmp_output\memout_registers.txt registers_test\tmp_output\regout_registers.txt registers_test\tmp_output\trace_registers.txt registers_test\tmp_output\cycles_registers.txt
