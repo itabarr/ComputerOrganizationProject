@@ -1,2 +1,2 @@
-.\asm.exe .\zyde_test\fibo_zyde.asm .\zyde_test\memin_zyde.txt 
-.\sim.exe .\zyde_test\memin_zyde.txt .\zyde_test\memout_zyde.txt .\zyde_test\regout_zyde.txt .\zyde_test\trace_zyde.txt .\zyde_test\cycles_zyde.txt
+asm.exe zyde_test\fibo_zyde.asm zyde_test\tmp_output\memin_zyde.txt 
+sim.exe zyde_test\tmp_output\memin_zyde.txt zyde_test\tmp_output\memout_zyde.txt zyde_test\tmp_output\regout_zyde.txt zyde_test\tmp_output\trace_zyde.txt zyde_test\tmp_output\cycles_zyde.txt

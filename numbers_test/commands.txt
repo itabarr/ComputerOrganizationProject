@@ -1,4 +1,4 @@
 #Run the following commands from the asm/sim directories (make sure you have the .\numbers_test\numbers.asm availble). 
 
-.\asm.exe .\numbers_test\numbers.asm .\numbers_test\memin_numbers.txt 
-.\sim.exe .\numbers_test\memin_numbers.txt .\numbers_test\memout_numbers.txt .\numbers_test\regout_number.txt .\numbers_test\trace_numbers.txt .\numbers_test\cycles_numbers.txt
+asm.exe numbers_test\numbers.asm numbers_test\tmp_output\memin_numbers.txt 
+sim.exe numbers_test\tmp_output\memin_numbers.txt numbers_test\tmp_output\memout_numbers.txt numbers_test\tmp_output\regout_numbers.txt numbers_test\tmp_output\trace_numbers.txt numbers_test\tmp_output\cycles_numbers.txt
