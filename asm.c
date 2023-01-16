@@ -411,7 +411,7 @@ int register_to_int(char* line, int n_register) {
 	else if (!strcmp("$a0", p)) { return 3; }
 	else if (!strcmp("$a1", p)) { return 4; }
 	else if (!strcmp("$a2", p)) { return 5; }
-	else if (!strcmp("a3", p)) { return 6; }
+	else if (!strcmp("$a3", p)) { return 6; }
 	else if (!strcmp("$t0", p)) { return 7; }
 	else if (!strcmp("$t1", p)) { return 8; }
 	else if (!strcmp("$t2", p)) { return 9; }
